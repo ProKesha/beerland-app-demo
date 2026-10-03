@@ -1,0 +1,29 @@
+{
+  "cli": { "appVersionSource": "local" },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_DEMO_AUTH": "0",
+        "EXPO_PUBLIC_DESIGN_SYSTEM": "0"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "demo",
+        "EXPO_PUBLIC_DEMO_AUTH": "0",
+        "EXPO_PUBLIC_DESIGN_SYSTEM": "0"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_DEMO_AUTH": "0",
+        "EXPO_PUBLIC_DESIGN_SYSTEM": "0"
+      }
+    }
+  }
+}

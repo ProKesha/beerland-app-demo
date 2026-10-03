@@ -1,0 +1,21 @@
+# Phase 8.5 — preserve cart when switching stores
+
+The old shared `useStoreSelection` confirmation called `useCartStore.clear()` before selecting the target. Every entry point using the shared picker therefore discarded the cart. Phase 8.5 replaces that action with a repository-backed transfer while retaining one cart store and one selected-store store.
+
+`prepareCartTransfer` fetches the target store and current products, checks each stored product and variant through the existing offer model, and returns a target-store cart and quote without mutating state. Confirmation requires one active request at a time and checks that the cart, selection and fulfillment method stayed unchanged while validation ran. Repository failures leave both original states intact and expose retry. The commit writes cart lines first, then the selected store, synchronously in one callback. Every item and requested quantity stays in the cart. The order quote uses current prices. Missing, unavailable and over-limit lines show issues and block checkout; available alternative variants can replace unavailable variants from the cart. A price change, unavailable item, quantity conflict or unsupported fulfillment method receives explicit feedback. Unsupported fulfillment stays selected until the user chooses an available method.
+
+Cart and selected store keep their existing Zustand persistence keys. Hydration completes before account/cart controls are exposed. If a restart sees one cart store ID and a different selected-store ID after an interrupted write, `reconcileCartStore` restores selection from the nonempty cart. No item is deleted to repair the mismatch. A mixed-store cart is never silently merged or deleted; checkout already blocks mixed lines.
+
+Targeted regression tests cover empty and active-store selection, cancellation, variant/quantity retention, current pricing, missing and unavailable products, missing variants, quantity conflicts, fulfillment, repository failures, duplicate confirmation, recovery after restart, shared entry points and completed Checkout. Existing order idempotency tests remain in the suite.
+
+## Verification
+
+Final checks: `npm run typecheck`, `npm run lint`, `npm test -- --runInBand --silent`, `npm run format:check`, `npm run export:web -- --max-workers 2`, and `git diff --check` all passed. Jest reported 54 suites and 722 tests passing across the iOS and Android projects. The existing asynchronous React `act(...)` warnings in some component tests remain non-failing.
+
+Web behavior was exercised in the exported app: cancel retained Demo 1 and both cart variants; confirming Demo 2 retained their quantities, updated the 1 L price from 100 ₴ to 105 ₴, and survived reload. An unavailable line remained visible and disabled checkout. At 320, 390, 430 and 1280 px, the transfer confirmation and cart warning were visible without clipping or horizontal overflow.
+
+The user confirmed cancellation, successful transfer and persistence after restarting Expo Go on a physical iPhone. The previous suggestion to use a 1.5 L variant did not reproduce the unavailable case on that device. For a deterministic fixture, use `product-2`, **Бурштиновий вечір**, `default` variant, **500 мл**: its product inventory lists Demo 2 (`store-2`) but omits Demo 1 (`store-1`). `variantOffer` therefore reports available in Demo 2 and unavailable in Demo 1. No product or variant IDs were changed.
+
+To reproduce on iPhone, start the current project with `npm run start` and reopen its QR code in Expo Go. Select **Beerland Демо 2** and add **Бурштиновий вечір, 500 мл**, quantity 2. Add an available control item, **Світлий берег, 500 мл**, quantity 1. From Home, Stores or Cart, choose **Beerland Демо 1** and press **Перенести кошик**. The cart must retain both lines and quantities, show **Немає в обраному магазині** on **Бурштиновий вечір**, and disable **Оформити замовлення**. Remove only **Бурштиновий вечір**; with pickup selected, checkout must become enabled for **Світлий берег**. If an older Expo Go bundle appears to show different inventory, reload the project from the current Metro session before comparing the result.
+
+Native runtime validation on this host is unavailable without a connected iPhone/Expo Go session or local iOS/Android emulator. Jest platform presets and web export do not replace this pass.

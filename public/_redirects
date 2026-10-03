@@ -1,0 +1,9 @@
+# Netlify only. Do not force these rules: generated pages and assets win.
+# The public host omitted some package assets. Serve Feather from the root;
+# mirror the remaining package assets outside the node_modules URL path.
+/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ca4b48e04dc1ce10bfbddb262c8b835f.ttf /Feather.ttf 200
+/assets/node_modules/* /host-assets/:splat 200
+/product/:id /product/local.html 200
+/store/:id /store/local.html 200
+/order/:id /order/local.html 200
+/* /+not-found.html 404
