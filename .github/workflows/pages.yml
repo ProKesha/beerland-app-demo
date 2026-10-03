@@ -1,0 +1,93 @@
+name: Deploy Beerland demo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/configure-pages@v5
+      - run: npm ci
+      - run: npm run check
+
+      - name: Configure Pages build
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+          app.expo.web = { ...app.expo.web, output: 'single', lang: 'uk' };
+          app.expo.experiments = {
+            ...app.expo.experiments,
+            baseUrl: '/beerland-app-demo',
+          };
+          fs.writeFileSync('app.json', JSON.stringify(app, null, 2));
+          NODE
+
+      - run: npm run export:demo -- --max-workers 2
+
+      - name: Preserve document styles and prepare routes
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+          const ts = require('typescript');
+          const theme = {};
+          const compiled = ts.transpileModule(
+            fs.readFileSync('src/theme/tokens.ts', 'utf8'),
+            { compilerOptions: { module: ts.ModuleKind.CommonJS } },
+          ).outputText;
+          vm.runInNewContext(compiled, { exports: theme });
+          const source = fs.readFileSync('app/+html.tsx', 'utf8');
+          const match = source.match(/<style>\{`([\s\S]*?)`\}<\/style>/);
+          if (!match) throw new Error('Document styles were not found');
+          const css = match[1].replace(
+            /\$\{(colors|layout)\.(\w+)\}/g,
+            (_, group, key) => {
+              const value = theme[group]?.[key];
+              if (value === undefined) throw new Error('Unknown theme token');
+              return String(value);
+            },
+          );
+          const html = fs.readFileSync('dist/index.html', 'utf8')
+            .replace(/<meta\s+name="viewport"[^>]*>/i,
+              '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />')
+            .replace('</head>',
+              '<meta name="theme-color" content="#FAF6F0" />' +
+              '<style>' + css + '</style></head>');
+          fs.writeFileSync('dist/index.html', html);
+          fs.writeFileSync('dist/404.html', html);
+          fs.writeFileSync('dist/.nojekyll', '');
+          NODE
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
