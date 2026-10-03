@@ -7,13 +7,18 @@ import type {
   Store,
   User,
 } from '@/types/domain';
-import type { CatalogRequest, CatalogPage } from '@/features/catalog/model';
+import type {
+  CatalogRequest,
+  CatalogPage,
+  CatalogMetadata,
+} from '@/features/catalog/model';
 import type { AuthChallenge, AuthUser } from '@/features/auth/types';
 export interface RequestOptions {
   signal?: AbortSignal;
 }
 export interface ProductFilters {
   storeId?: string;
+  commerceGroup?: Product['commerceGroup'];
   servingType?: Product['servingType'];
   availability?: Product['availability'];
 }
@@ -38,7 +43,7 @@ export interface ProductRepository {
     request: CatalogRequest,
     options?: RequestOptions,
   ): Promise<CatalogPage>;
-  catalogMetadata(options?: RequestOptions): Promise<{ breweries: string[] }>;
+  catalogMetadata(options?: RequestOptions): Promise<CatalogMetadata>;
   list(filters?: ProductFilters, options?: RequestOptions): Promise<Product[]>;
   getById(id: string, options?: RequestOptions): Promise<Product | null>;
 }

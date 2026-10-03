@@ -43,6 +43,7 @@ import { useCatalog } from './useCatalog';
 import { useDiscoveryState } from './useDiscoveryState';
 import { CatalogFilters } from './components/CatalogFilters';
 import { CatalogMasthead } from './components/CatalogMasthead';
+import { CommerceGroupFilters } from './components/CommerceGroupFilters';
 import { ShopPageBanner } from '@/components/common/ShopPageBanner';
 
 export function DiscoveryScreen({
@@ -58,6 +59,10 @@ export function DiscoveryScreen({
   const storeId = useSelectedStore((s) => s.storeId) ?? undefined;
   const stores = useStores({ enabled: hydrated });
   const store = stores.data?.find((s) => s.id === storeId);
+  const canOrder =
+    !!store &&
+    !store.temporarilyClosed &&
+    (store.pickupAvailable || store.deliveryAvailable);
   const [picker, setPicker] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
@@ -70,13 +75,10 @@ export function DiscoveryScreen({
     !query.trim() &&
     state.category === 'all' &&
     !chips.length &&
-    !state.promotionId;
+    !state.promotionId &&
+    !state.group;
   const result = useCatalog(request, hydrated && !suggested);
-  const actions = useHomeActions(
-    storeId,
-    !!store && (store.pickupAvailable || store.deliveryAvailable),
-    () => setPicker(true),
-  );
+  const actions = useHomeActions(storeId, canOrder, () => setPicker(true));
   const { width, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const availableWidth = Math.min(width, layout.maxShopWidth);
@@ -152,16 +154,26 @@ export function DiscoveryScreen({
       </View>
       <SearchInput
         value={query}
-        onChangeText={(value) => {
-          setQuery(value);
-          resetScroll();
-        }}
+        onChangeText={setQuery}
         maxLength={100}
         placeholder="Пиво, стиль або броварня"
         onSearch={repeat}
         autoFocus={searchMode}
         onBlur={() => {
           if (query.trim()) preferences.remember(query);
+        }}
+      />
+      <CommerceGroupFilters
+        request={state}
+        storeName={store?.name}
+        enabled={hydrated}
+        onGroup={(group) => {
+          discovery.setGroup(group);
+          resetScroll();
+        }}
+        onSubcategory={(subcategory) => {
+          discovery.setSubcategory(subcategory);
+          resetScroll();
         }}
       />
       <ScrollView
@@ -329,6 +341,7 @@ export function DiscoveryScreen({
             <ProductCard
               product={item}
               variant={compact ? 'compact' : 'standard'}
+              disabled={!!storeId && !canOrder}
               unavailableLabel={storeId ? 'Немає в цьому магазині' : undefined}
               isFavorited={actions.favorites.includes(item.id)}
               onFavorite={actions.favorite}
@@ -365,20 +378,33 @@ export function DiscoveryScreen({
             <EmptyState
               variant="search"
               title={
-                query.trim()
-                  ? 'Не знайшли такого смаку'
-                  : chips.length || state.promotionId
-                    ? 'За цими фільтрами нічого не знайшлося'
-                    : 'У цій категорії поки порожньо'
+                state.group === 'onTap' && !storeId
+                  ? 'Оберіть магазин для асортименту на кранах'
+                  : query.trim()
+                    ? 'Не знайшли такого смаку'
+                    : chips.length || state.promotionId
+                      ? 'За цими фільтрами нічого не знайшлося'
+                      : 'У цій категорії поки порожньо'
               }
               action={{
-                label: query.trim()
-                  ? 'Очистити пошук'
-                  : chips.length
-                    ? 'Скинути фільтри'
-                    : 'Усі товари',
-                onPress: () =>
-                  query.trim() ? setQuery('') : discovery.clearFilters(),
+                label:
+                  query.trim() && !(state.group === 'onTap' && !storeId)
+                    ? 'Очистити пошук'
+                    : state.group === 'onTap' && !storeId
+                      ? 'Обрати магазин'
+                      : chips.length
+                        ? 'Скинути фільтри'
+                        : 'Усі товари',
+                onPress: () => {
+                  if (state.group === 'onTap' && !storeId) setPicker(true);
+                  else if (query.trim()) setQuery('');
+                  else if (chips.length || state.subcategory)
+                    discovery.clearFilters();
+                  else {
+                    discovery.clearFilters();
+                    discovery.setGroup();
+                  }
+                },
               }}
             />
           )

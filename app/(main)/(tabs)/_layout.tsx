@@ -2,7 +2,17 @@ import { Tabs } from 'expo-router';
 import { Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/ui/Icon';
+import {
+  CartIcon,
+  cartBadgeStyles,
+  cartIconArea,
+} from '@/components/common/CartIcon';
 import { useCartStore } from '@/stores/cart';
+import {
+  formatCartAccessibilityLabel,
+  formatCartBadge,
+  selectCartLineCount,
+} from '@/stores/cartSelectors';
 import {
   componentHeights,
   layout,
@@ -14,9 +24,7 @@ export default function TabsLayout() {
   const { width } = useWindowDimensions();
   const desktopShop = Platform.OS === 'web' && width >= 740;
   const insets = useSafeAreaInsets();
-  const count = useCartStore((state) =>
-    state.items.reduce((sum, item) => sum + item.quantity, 0),
-  );
+  const count = useCartStore(selectCartLineCount);
   return (
     <Tabs
       screenOptions={{
@@ -67,14 +75,15 @@ export default function TabsLayout() {
         name="cart"
         options={{
           title: 'Кошик',
-          tabBarBadge: count > 0 ? (count > 99 ? '99+' : count) : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: shopPalette.gold,
-            color: shopPalette.navy,
-            ...typography.caption,
-          },
-          tabBarAccessibilityLabel: 'Кошик',
-          tabBarIcon: ({ color }) => <Icon name="shopping-bag" color={color} />,
+          tabBarButtonTestID: 'cart-tab',
+          tabBarBadge: formatCartBadge(count),
+          tabBarBadgeStyle: [cartBadgeStyles.root, cartBadgeStyles.navigation],
+          tabBarIconStyle: { width: cartIconArea, height: cartIconArea },
+          tabBarAllowFontScaling: false,
+          tabBarAccessibilityLabel: formatCartAccessibilityLabel(count),
+          tabBarIcon: ({ color }) => (
+            <CartIcon color={color} showBadge={false} />
+          ),
         }}
       />
       <Tabs.Screen

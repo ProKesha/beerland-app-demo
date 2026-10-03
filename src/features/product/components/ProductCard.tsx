@@ -16,8 +16,16 @@ import {
   Icon,
   IconButton,
   Price,
+  QuantityControl,
 } from '@/components/ui';
 import { ProductImage } from './ProductImage';
+import { useProductCartControl } from '../useProductCartControl';
+import {
+  formatProductQuantity,
+  formatServingAmount,
+  priceUnit,
+} from '../quantityFormat';
+import { formatVolume } from '@/utils/format';
 export interface ProductCardProps {
   product: Product;
   variant?: 'standard' | 'compact';
@@ -50,7 +58,9 @@ export function ProductCard({
   const theme = getBeerStyleTheme(product.beerStyle ?? product.category);
   const source = imageSource ?? resolveProductImage(product.image);
   const hasBadges = product.isNew || product.isPopular || product.isOwnBrewery;
-  const unavailable = product.availability !== 'available';
+  const cart = useProductCartControl(product, disabled);
+  const unavailable =
+    (cart.offer?.availability ?? product.availability) !== 'available';
   return (
     <Card style={[styles.root, compact && styles.compact, shop && styles.shop]}>
       <View style={!compact && styles.image}>
@@ -107,35 +117,81 @@ export function ProductCard({
               {unavailableLabel}
             </AppText>
           )}
-          <Price currentPrice={product.price} volume={product.volume} />
+          <Price
+            currentPrice={cart.offer?.price ?? product.price}
+            unit={priceUnit(product, cart.variant)}
+          />
+          {(product.servingType === 'bottle' ||
+            product.servingType === 'can') && (
+            <AppText variant="caption" color="textSubtle">
+              {formatVolume(cart.variant?.volume ?? product.volume)}
+            </AppText>
+          )}
           <View style={styles.actions}>
             {compact && favorite()}
-            <Button
-              label={unavailable ? 'Недоступно' : 'Додати'}
-              accessibilityLabel={`Додати в кошик: ${product.name}`}
-              disabled={disabled || unavailable}
-              loading={adding}
-              onPress={() => onAddToCart(product)}
-              leftIcon={
-                !unavailable && (
-                  <Icon
-                    name="plus"
-                    size="sm"
-                    color={
-                      disabled
-                        ? colors.disabledText
-                        : shop
-                          ? colors.primary
-                          : colors.background
-                    }
-                  />
-                )
-              }
-              style={[styles.add, shop && styles.shopAdd]}
-              size="compact"
-              variant={shop ? 'accent' : 'primary'}
-            />
+            {cart.item && cart.variant ? (
+              <QuantityControl
+                testID={`product-quantity-${product.id}`}
+                compact
+                value={cart.item.quantity}
+                displayValue={formatProductQuantity(
+                  product,
+                  cart.variant,
+                  cart.item.quantity,
+                )}
+                label={`${product.name}, у кошику`}
+                incrementLabel={
+                  cart.draft && cart.next
+                    ? `Збільшити об’єм до ${formatServingAmount(cart.next)}: ${product.name}`
+                    : cart.draft
+                      ? `Збільшити об’єм: ${product.name}`
+                      : `Збільшити кількість: ${product.name}`
+                }
+                decrementLabel={
+                  cart.draft
+                    ? cart.previous
+                      ? `Зменшити об’єм до ${formatServingAmount(cart.previous)}: ${product.name}`
+                      : `Видалити з кошика: ${product.name}`
+                    : `Зменшити кількість: ${product.name}`
+                }
+                incrementDisabled={cart.incrementDisabled}
+                decrementDisabled={cart.decrementDisabled}
+                disabled={adding}
+                onStep={cart.step}
+              />
+            ) : (
+              <Button
+                label={unavailable ? 'Недоступно' : 'Додати'}
+                accessibilityLabel={`Додати в кошик: ${product.name}`}
+                disabled={disabled || unavailable}
+                loading={adding}
+                onPress={() => onAddToCart(product)}
+                leftIcon={
+                  !unavailable && (
+                    <Icon
+                      name="plus"
+                      size="sm"
+                      color={
+                        disabled
+                          ? colors.disabledText
+                          : shop
+                            ? colors.primary
+                            : colors.background
+                      }
+                    />
+                  )
+                }
+                style={[styles.add, shop && styles.shopAdd]}
+                size="compact"
+                variant={shop ? 'accent' : 'primary'}
+              />
+            )}
           </View>
+          {cart.otherLines > 0 && (
+            <AppText variant="caption" color="textSubtle">
+              Інші варіанти цього товару також у кошику
+            </AppText>
+          )}
         </View>
       </View>
     </Card>

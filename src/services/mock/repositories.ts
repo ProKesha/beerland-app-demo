@@ -10,6 +10,7 @@ import { searchProducts } from './searchProducts';
 import { productAtStore } from '@/utils/productOffer';
 import { productRecommendations } from './productRecommendations';
 import { createMockAuthRepository } from './auth';
+import { catalogMetadata, isAvailableOnTapAtStore } from './commerceGroups';
 async function respond<T>(value: T, options?: RequestOptions): Promise<T> {
   if (options?.signal?.aborted) {
     const error = new Error('Request aborted');
@@ -32,17 +33,7 @@ export function createMockRepositories(
         respond(productRecommendations(products, id, storeId), options),
       searchProducts: (request, options) =>
         respond(searchProducts(products, promotions, request), options),
-      catalogMetadata: (options) =>
-        respond(
-          {
-            breweries: [
-              ...new Set(
-                products.flatMap((p) => (p.brewery ? [p.brewery] : [])),
-              ),
-            ].sort(),
-          },
-          options,
-        ),
+      catalogMetadata: (options) => respond(catalogMetadata(products), options),
       list: (filters, options) =>
         respond(
           products
@@ -53,6 +44,16 @@ export function createMockRepositories(
                   product.storeIds.includes(filters.storeId)) &&
                 (!filters?.servingType ||
                   product.servingType === filters.servingType) &&
+                (!filters?.commerceGroup ||
+                  product.commerceGroup === filters.commerceGroup) &&
+                (filters?.commerceGroup !== 'onTap' ||
+                  isAvailableOnTapAtStore(product, filters.storeId)) &&
+                (!(
+                  filters?.storeId &&
+                  filters.servingType === 'draft' &&
+                  filters.availability === 'available'
+                ) ||
+                  isAvailableOnTapAtStore(product, filters.storeId)) &&
                 (!filters?.availability ||
                   product.availability === filters.availability),
             ),

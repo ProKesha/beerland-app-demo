@@ -7,7 +7,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+import { FlatList, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { CatalogScreen } from '@/features/catalog/CatalogScreen';
 import { SearchScreen } from '@/features/catalog/SearchScreen';
@@ -126,7 +126,14 @@ test('available item adds to cart, favorite toggles shared state and product pre
   });
 });
 test('store-specific unavailable item blocks cart but remains readable, favoritable and openable', async () => {
-  setup({ q: 'Сосновий маршрут' });
+  const repositories = createMockRepositories();
+  const stores = await repositories.stores.list();
+  jest
+    .spyOn(repositories.stores, 'list')
+    .mockResolvedValue(
+      stores.map((store) => ({ ...store, temporarilyClosed: false })),
+    );
+  setup({ q: 'Сосновий маршрут' }, repositories);
   const card = within(await screen.findByTestId('catalog-product-11'));
   expect(card.getByText('Немає в цьому магазині')).toBeOnTheScreen();
   const add = card.getByRole('button', {
@@ -202,6 +209,31 @@ test('search combines with filters and no-results action clears only query', asy
   expect(
     screen.getByRole('button', { name: 'Прибрати фільтр: Популярне' }),
   ).toBeOnTheScreen();
+});
+test('typing inside a collection avoids scrolling the focused input; explicit search resets results', async () => {
+  const scroll = jest
+    .spyOn(FlatList.prototype, 'scrollToOffset')
+    .mockImplementation(() => undefined);
+  try {
+    setup({ group: 'snacks' });
+    await screen.findByTestId('catalog-product-7');
+    const input = screen.getByLabelText('Пошук');
+    for (const text of ['г', 'гр', 'грі']) fireEvent.changeText(input, text);
+    expect(scroll).not.toHaveBeenCalled();
+    expect(await screen.findByTestId('catalog-product-7')).toBeOnTheScreen();
+    expect(screen.queryByTestId('catalog-product-29')).toBeNull();
+    expect(
+      screen.getByRole('button', {
+        name: 'Колекція: Смаколики',
+        selected: true,
+      }),
+    ).toBeOnTheScreen();
+    fireEvent.press(screen.getByRole('button', { name: 'Виконати пошук' }));
+    expect(scroll).toHaveBeenCalledTimes(1);
+    expect(scroll).toHaveBeenCalledWith({ offset: 0, animated: false });
+  } finally {
+    scroll.mockRestore();
+  }
 });
 test('filtered and category empty states have recovery actions', async () => {
   const repositories = createMockRepositories();

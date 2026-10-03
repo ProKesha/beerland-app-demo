@@ -1,13 +1,16 @@
 import { homeCategories } from '@/features/home/utils/categories';
 import {
   catalogCategories,
+  commerceGroups,
   type CatalogRequest,
   type CatalogFilters,
 } from './model';
-import type { Product } from '@/types/domain';
+import type { CommerceGroup, Product } from '@/types/domain';
 export type CatalogIntent = {
   q?: string;
   category?: string;
+  group?: CommerceGroup;
+  subcategory?: string;
   collection?: string;
   promotionId?: string;
   servingType?: Product['servingType'];
@@ -24,11 +27,18 @@ export function readCatalogIntent(
       ? params[key].trim().slice(0, 200)
       : undefined;
   const category = single('category');
+  const group = single('group');
   const collection = single('collection');
   const servingType = single('servingType');
   const beerStyle = single('beerStyle')?.toLowerCase();
   return {
     q: single('q') || single('search') || undefined,
+    group: commerceGroups.some((item) => item.id === group)
+      ? (group as CommerceGroup)
+      : undefined,
+    subcategory: commerceGroups.some((item) => item.id === group)
+      ? single('subcategory') || undefined
+      : undefined,
     category: catalogCategories.some((item) => item.id === category)
       ? category
       : undefined,
@@ -60,6 +70,8 @@ export function requestFromIntent(intent: CatalogIntent): CatalogRequest {
   if (intent.beerStyle) filters.styles = [intent.beerStyle];
   return {
     query: intent.q ?? '',
+    group: intent.group,
+    subcategory: intent.subcategory,
     category:
       catalogCategories.find((c) => c.id === intent.category)?.id ?? 'all',
     promotionId: intent.promotionId,
@@ -70,6 +82,7 @@ export function requestFromIntent(intent: CatalogIntent): CatalogRequest {
 export function describeCatalogIntent(intent: CatalogIntent) {
   return [
     intent.q ? `Пошук: ${intent.q}` : undefined,
+    commerceGroups.find((item) => item.id === intent.group)?.label,
     homeCategories.find((item) => item.id === intent.category)?.label,
     intent.collection === 'popular'
       ? 'Популярне зараз'

@@ -1,5 +1,6 @@
 import { getBeerStyleTheme } from '@/theme/beerStyles';
 import { View, StyleSheet } from 'react-native';
+import { useLayoutEffect, useRef } from 'react';
 import { AppText, Button, Card, Price, QuantityControl } from '@/components/ui';
 import { ProductImage } from '@/features/product/components/ProductImage';
 import { resolveProductImage } from '@/assets/images';
@@ -12,12 +13,32 @@ import {
   variantOffer,
 } from '@/features/product/variants';
 import { spacing } from '@/theme/tokens';
-export function CartItemCard({ line }: { line: CartLine }) {
+import { ServingControl } from './ServingControl';
+import {
+  formatProductQuantity,
+  priceUnit,
+} from '@/features/product/quantityFormat';
+import { stepCartPortionCount } from '@/features/product/cartActions';
+export function CartItemCard({
+  line,
+  canOrder = true,
+}: {
+  line: CartLine;
+  canOrder?: boolean;
+}) {
   const { item, product } = line;
-  const setQuantity = useCartStore((s) => s.setQuantity);
+  const liveVariant = useRef(item.variantId ?? 'default');
+  useLayoutEffect(() => {
+    liveVariant.current = item.variantId ?? 'default';
+  }, [item.variantId]);
   const remove = useCartStore((s) => s.removeItem);
   const replaceVariant = useCartStore((s) => s.replaceVariant);
   const name = product?.name ?? 'Товар недоступний';
+  const variant =
+    product &&
+    productVariants(product).find(
+      (v) => v.id === (item.variantId ?? 'default'),
+    );
   return (
     <Card testID={`cart-line-${cartKey(item)}`}>
       <View style={styles.row}>
@@ -35,12 +56,19 @@ export function CartItemCard({ line }: { line: CartLine }) {
               {getBeerStyleTheme(product.beerStyle).label}
             </AppText>
           )}
-          <AppText variant="bodySmall">{line.variantLabel}</AppText>
+          {variant?.servingType !== 'draft' && (
+            <AppText variant="bodySmall">{line.variantLabel}</AppText>
+          )}
           <AppText variant="caption" color="textSubtle">
             {line.servingLabel}
           </AppText>
           {line.priceKnown ? (
-            <Price currentPrice={line.unitPrice} />
+            <Price
+              currentPrice={line.unitPrice}
+              unit={
+                product && variant ? priceUnit(product, variant) : undefined
+              }
+            />
           ) : (
             <AppText>Ціна недоступна</AppText>
           )}
@@ -80,21 +108,48 @@ export function CartItemCard({ line }: { line: CartLine }) {
               }
             />
           ))}
+      {product && variant?.servingType === 'draft' && (
+        <>
+          <AppText variant="caption" color="textSubtle">
+            Об’єм порції
+          </AppText>
+          <ServingControl
+            product={product}
+            item={item}
+            canOrder={canOrder}
+            onVariantChange={(variantId) => {
+              liveVariant.current = variantId;
+            }}
+          />
+          <AppText variant="caption" color="textSubtle">
+            Кількість порцій
+          </AppText>
+        </>
+      )}
       <View style={styles.controls}>
         <QuantityControl
           label={`${name}, ${line.variantLabel}`}
           value={item.quantity}
+          displayValue={
+            product && variant && variant.servingType !== 'draft'
+              ? formatProductQuantity(product, variant, item.quantity)
+              : undefined
+          }
           min={1}
-          max={Math.max(item.quantity, line.maxQuantity)}
-          onChange={(quantity) => {
-            if (quantity < item.quantity || quantity <= line.maxQuantity)
-              setQuantity(
-                item.productId,
-                item.storeId,
-                quantity,
-                item.variantId,
-              );
-          }}
+          max={
+            line.available && canOrder
+              ? Math.max(item.quantity, line.maxQuantity)
+              : item.quantity
+          }
+          onStep={(direction) =>
+            stepCartPortionCount(
+              product,
+              item,
+              direction,
+              canOrder,
+              liveVariant.current,
+            )
+          }
         />
         <AppText
           variant="price"

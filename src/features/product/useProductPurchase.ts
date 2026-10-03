@@ -6,6 +6,7 @@ import { useSessionStore } from '@/stores/session';
 import { useStores } from '@/features/stores/useStores';
 import { useToast } from '@/components/ui';
 import { productVariants, variantOffer } from './variants';
+import { addProductVariantToCart, quantityLimit } from './cartActions';
 
 export function useProductPurchase(product: Product) {
   const hydrated = useSessionStore((s) => s.hydrated);
@@ -28,11 +29,13 @@ export function useProductPurchase(product: Product) {
     )?.quantity ?? 0;
   const remaining = Math.max(
     0,
-    (offer.maxQuantity ?? Number.MAX_SAFE_INTEGER) - existing,
+    (storeId ? quantityLimit(product, variant, storeId) : 99) - existing,
   );
   const selectedQuantity = Math.max(1, Math.min(quantity, remaining));
   const canOrder =
-    !!store && (store.pickupAvailable || store.deliveryAvailable);
+    !!store &&
+    !store.temporarilyClosed &&
+    (store.pickupAvailable || store.deliveryAvailable);
   const canBuy =
     hydrated && canOrder && offer.availability === 'available' && remaining > 0;
   const toast = useToast();
@@ -48,27 +51,16 @@ export function useProductPurchase(product: Product) {
       return;
     }
     if (!canBuy) return;
-    const liveQuantity =
-      useCartStore
-        .getState()
-        .items.find(
-          (item) =>
-            item.productId === product.id &&
-            item.storeId === storeId &&
-            (item.variantId ?? 'default') === variant.id,
-        )?.quantity ?? 0;
     if (
-      offer.maxQuantity !== undefined &&
-      liveQuantity + selectedQuantity > offer.maxQuantity
+      addProductVariantToCart(
+        product,
+        variant,
+        storeId,
+        selectedQuantity,
+        canOrder,
+      ) === 'added'
     )
-      return;
-    useCartStore.getState().addItem({
-      productId: product.id,
-      variantId: variant.id,
-      storeId,
-      quantity: selectedQuantity,
-    });
-    toast.show('Додано в кошик');
+      toast.show('Додано в кошик');
   };
   return {
     hydrated,

@@ -242,7 +242,15 @@ test('switching stores updates selected-variant price and availability without n
   expect(router.push).not.toHaveBeenCalled();
 });
 test('unavailable product keeps favorite, descriptions and store switching available', async () => {
-  setup('product-11');
+  const repositories = createMockRepositories();
+  const stores = await repositories.stores.list();
+  // Exercise inventory switching independently of the demo store's closure.
+  jest
+    .spyOn(repositories.stores, 'list')
+    .mockResolvedValue(
+      stores.map((store) => ({ ...store, temporarilyClosed: false })),
+    );
+  setup('product-11', repositories);
   await screen.findByRole('header', { name: 'Сосновий маршрут' });
   expect(screen.getByTestId('product-add')).toBeDisabled();
   fireEvent.press(screen.getByTestId('product-add'));

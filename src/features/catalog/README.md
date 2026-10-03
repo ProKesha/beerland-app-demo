@@ -9,12 +9,20 @@ recent submitted/committed searches and grid/list preference.
 ## Data boundary
 
 `ProductRepository.searchProducts(CatalogRequest)` returns `{ items, total,
-nextOffset }`. The request contains selected store, query, category, filters,
+nextOffset }`. The request contains selected store, commerce group/subcategory, query, category, filters,
 promotion, sorting, offset and limit. `useCatalog` forwards cancellation signals
 and keys its cache by the whole request. There is no fixture import or product
 filtering in UI code. The mock adapter implements search and filtering; a backend
 adapter can replace it without screen changes. `catalogMetadata` supplies brewery
-choices independently, so metadata failure does not block browsing.
+choices and the actual represented subcategories for each commerce group independently,
+so metadata failure does not block browsing. Older injected adapters may omit the
+optional commerce taxonomy while migrating; UI never fills it with fictional categories.
+
+The canonical collection links use `/catalog?group=onTap|bottled|snacks|other`,
+with optional `subcategory`. Products carry explicit `commerceGroup` and
+`commerceSubcategory` repository fields. The mock adapter classifies its existing
+32 products using serving/category fields and explicit snack records; titles
+never determine collection membership. The empty `other` group adds no products.
 
 Results use FlatList. Pages contain up to 36 items with an explicit "show more"
 action when an adapter supplies another offset. The 32-item fixture fits one page;
@@ -36,10 +44,16 @@ there is no automatic infinite-scroll machinery or assumed final catalog size.
 - With a selected store, available items sort first. The chosen sort applies
   within each stock group, with a stable ID tie-breaker. Missing ABV sorts last.
 - Promotion IDs apply active date and store restrictions as well as membership.
-- No store selection is required to browse. Adding asks the user to choose one.
+- On-tap collection results require the selected store, available parent stock,
+  and at least one available draft serving variant. Home's available draft list
+  uses the same eligibility rule. Other groups remain browsable without a store;
+  adding asks the user to choose one.
+- Changing group clears its subcategory and detailed category while retaining
+  search, applied filters, promotion and sorting. Detailed category chips and
+  filter controls remain available within every commerce group.
 - Filter edits are a modal draft. Apply commits; close discards; reset clears the
   draft. Individual chips remove one condition. Clear-all also clears category
-  and promotion while retaining the query and sort.
+  and promotion while retaining the commerce group, query and sort.
 
 ## Responsive and verification
 

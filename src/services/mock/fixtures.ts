@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { productSchema, storeSchema, promotionSchema } from '@/types/domain';
 import { extraProducts } from './catalogExpansion';
 import { enrichProductDetails } from './productDetails';
+import { enrichProductCommerce } from './commerceGroups';
 
 // Fictional records for development; not real locations, inventory, or prices.
 export const stores = z.array(storeSchema).parse([
@@ -541,7 +542,9 @@ export const products = [
     }),
   ),
   ...extraProducts,
-].map(enrichProductDetails);
+]
+  .map(enrichProductCommerce)
+  .map(enrichProductDetails);
 export const promotions = z.array(promotionSchema).parse([
   {
     id: 'discovery',

@@ -2,7 +2,18 @@
 
 Ukrainian React Native / Expo / TypeScript application for iOS, Android and Web. Phases 1–9B provide discovery, commerce, store maps, account screens, age-gated guest entry and internal demo phone authentication. Phase 10 polishes this frontend and documents integration and release requirements.
 
-**The app currently uses fictional data and local demo orders.** There is no production backend, SMS, payment processing, POS, inventory synchronization or push delivery. Production mode deliberately fails closed. Phase 10 is implemented and automatically/browser verified; current physical iPhone and Android verification remains pending. See [the verification report](docs/phase-10-verification.md).
+**The app currently uses fictional data and local demo orders.** There is no production backend, SMS, payment processing, POS, inventory synchronization or push delivery. Production mode deliberately fails closed. The shopping UX update is implemented and browser verified; physical iPhone and Android verification remains pending. See the [shopping UX report](docs/shopping-ux.md) and [Phase 10 verification report](docs/phase-10-verification.md).
+
+## Shopping UX update
+
+The current frontend includes a shared cart-position badge, compact quantity controls and explicit commerce groups:
+
+- Cart badges count distinct active `(product, variant, store)` lines and announce the exact Ukrainian count. The visual badge caps at `99+`.
+- Draft products move only through repository-defined available serving sizes. Packaged products keep integer piece counts, and measured snacks keep their declared units such as `г`.
+- Home and Catalog expose `Сьогодні на кранах`, `Сьогодні в пляшках`, `Смаколики` and `Інші товари` without removing detailed categories, search, filters, sorting or list/grid mode.
+- Cart keeps draft serving selection separate from integer portion quantity. Store availability, limits, transfer and persistence remain enforced by the existing repository and Zustand architecture.
+
+The implementation does not add backend integration, packaging fees or a new deployment path. The future packaging extension point is documented in [docs/shopping-ux.md](docs/shopping-ux.md).
 
 ## Start locally
 
@@ -88,6 +99,7 @@ npm run lint
 npm test
 npm run format:check
 npm run export:web
+npm run export:demo
 npm run export:ios
 npm run export:android
 git diff --check
@@ -95,7 +107,7 @@ git diff --check
 
 For reproducible demo exports, set `EXPO_PUBLIC_APP_ENV=demo`, `EXPO_PUBLIC_DEMO_AUTH=0` and `EXPO_PUBLIC_DESIGN_SYSTEM=0`; `export:demo` supplies these for Web. iOS/Android export scripts write JavaScript/Hermes artifacts under `.expo/exports/`; they do not build or run installable native applications.
 
-The suite runs source tests under both iOS and Android Jest presets, with zero snapshots. Phase 10 finished at 966 checks; optimized-auth, static-host asset and shop navigation regressions run under both presets. Jest presets and successful exports do not substitute for real devices. Home, catalog and the expanded shop flows need browser and native runtime review after each design change. Current deployment results are in the [Netlify checklist](docs/netlify-deployment.md); historical results and remaining device checks are in the [Phase 10 report](docs/phase-10-verification.md).
+The final shopping UX verification passed **1176 checks across 96 suites** under both iOS and Android Jest presets, with zero snapshots. Jest presets and successful exports do not substitute for real devices: this workspace has no usable `simctl`, Android `adb` or emulator. Home, Catalog, Cart, Favorites and Product Detail were browser-verified at 320×568, 390×844, 430×932 and 1280×800. Current deployment results are in the [Netlify checklist](docs/netlify-deployment.md); historical results and remaining device checks are in the [Phase 10 report](docs/phase-10-verification.md).
 
 ## Dependencies and builds
 
@@ -107,6 +119,7 @@ The internal showcase starts with `npm run design-system`. `npm run export:desig
 
 ## Documentation
 
+- [Shopping UX: cart badge, quantities and commerce groups](docs/shopping-ux.md)
 - [Phase 10 audit and verification](docs/phase-10-verification.md)
 - [Owner demo walkthrough](docs/owner-demo.md)
 - [Static demo deployment settings](docs/demo-deployment.md)
@@ -117,3 +130,19 @@ The internal showcase starts with `npm run design-system`. `npm run export:desig
 - [Release checklist and exact device test plans](docs/release-readiness.md)
 
 Earlier `docs/phase-*-verification.md` files are historical checkpoints. No backend integration, external deployment or later development phase was started.
+
+## Commit and push
+
+Review the staged diff before creating the commit. These commands prepare and push the current `main` branch to the configured `origin` remote:
+
+```sh
+git status --short
+git diff
+git add -A
+git diff --cached --check
+git diff --cached --stat
+git commit -m "feat: improve shopping UX"
+git push -u origin main
+```
+
+The push command is intentionally documented only; deployment remains handled by the existing GitHub → Netlify workflow.

@@ -70,6 +70,7 @@ export function enrichProductDetails(product: Product): Product {
     id: index === 0 ? 'default' : `${value}-${product.volume.unit}`,
     volume: { value, unit: product.volume.unit },
     servingType: product.servingType,
+    ...(product.sellingUnit ? { sellingUnit: product.sellingUnit } : {}),
     basePrice: {
       ...product.price,
       amount: Math.round((product.price.amount * value) / product.volume.value),

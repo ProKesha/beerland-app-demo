@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { CommerceGroup } from '@/types/domain';
 import type {
   CatalogRequest,
   CatalogFilters,
@@ -19,6 +20,15 @@ export function useDiscoveryState(initial: CatalogRequest) {
     state,
     query,
     setQuery,
+    setGroup: (group?: CommerceGroup) =>
+      setState((s) => ({
+        ...s,
+        group,
+        subcategory: undefined,
+        category: 'all',
+      })),
+    setSubcategory: (subcategory?: string) =>
+      setState((s) => ({ ...s, subcategory })),
     setCategory: (category: CatalogCategory) =>
       setState((s) => ({ ...s, category })),
     setFilters: (filters: CatalogFilters) =>
@@ -30,6 +40,7 @@ export function useDiscoveryState(initial: CatalogRequest) {
         ...s,
         filters: {},
         category: 'all',
+        subcategory: undefined,
         promotionId: undefined,
       })),
   };

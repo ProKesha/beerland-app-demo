@@ -1,4 +1,31 @@
-import type { Product } from '@/types/domain';
+import type { CommerceGroup, Product } from '@/types/domain';
+
+export const commerceGroups = [
+  {
+    id: 'onTap',
+    label: 'Сьогодні на кранах',
+    shortLabel: 'На кранах',
+    icon: 'droplet',
+  },
+  {
+    id: 'bottled',
+    label: 'Сьогодні в пляшках',
+    shortLabel: 'У пляшках',
+    icon: 'package',
+  },
+  { id: 'snacks', label: 'Смаколики', shortLabel: 'Смаколики', icon: 'coffee' },
+  { id: 'other', label: 'Інші товари', shortLabel: 'Інше', icon: 'gift' },
+] as const;
+
+export interface CatalogMetadata {
+  breweries: string[];
+  /** Older injected adapters may omit discovery taxonomy during migration. */
+  commerceGroups?: {
+    id: CommerceGroup;
+    label: string;
+    subcategories: { id: string; label: string }[];
+  }[];
+}
 
 export const catalogCategories = [
   { id: 'all', label: 'Усе', icon: 'grid' },
@@ -72,6 +99,8 @@ export interface CatalogFilters {
 }
 export interface CatalogRequest {
   storeId?: string;
+  group?: CommerceGroup;
+  subcategory?: string;
   query?: string;
   category?: CatalogCategory;
   filters?: CatalogFilters;

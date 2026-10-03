@@ -66,6 +66,7 @@ export function ProductRecommendations({
                     onFavorite={actions.favorite}
                     onAddToCart={actions.add}
                     onOpen={actions.openProduct}
+                    disabled={!!storeId && !canOrder}
                   />
                 </View>
               ))}

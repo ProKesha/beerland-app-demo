@@ -25,10 +25,26 @@ const volumeSchema = z.object({
   unit: z.enum(['ml', 'g']),
 });
 const servingTypeSchema = z.enum(['draft', 'bottle', 'can', 'other']);
+export const commerceGroupSchema = z.enum([
+  'onTap',
+  'bottled',
+  'snacks',
+  'other',
+]);
+export const sellingUnitSchema = z.enum([
+  'piece',
+  'pack',
+  'g',
+  'kg',
+  'ml',
+  'l',
+]);
 export const productVariantSchema = z.object({
   id: z.string().min(1),
   volume: volumeSchema,
   servingType: servingTypeSchema,
+  /** Explicit price unit, when supplied by an authoritative offer. */
+  sellingUnit: sellingUnitSchema.optional(),
   basePrice: moneySchema,
   oldPrice: moneySchema.optional(),
   availability: availabilitySchema,
@@ -52,7 +68,12 @@ export const productSchema = z.object({
   description: z.string(),
   shortDescription: z.string(),
   category: categorySchema,
+  commerceGroup: commerceGroupSchema.default('other'),
+  /** Repository-owned discovery taxonomy; unrelated to product names. */
+  commerceSubcategory: z.string().min(1).optional(),
   servingType: z.enum(['draft', 'bottle', 'can', 'other']).default('other'),
+  /** Missing unit preserves the existing price per exact serving convention. */
+  sellingUnit: sellingUnitSchema.optional(),
   beerStyle: z.string().optional(),
   brewery: z.string().optional(),
   country: z.string(),
@@ -118,6 +139,8 @@ export const storeSchema = z.object({
   pickupAvailable: z.boolean(),
 });
 export type Money = z.infer<typeof moneySchema>;
+export type CommerceGroup = z.infer<typeof commerceGroupSchema>;
+export type SellingUnit = z.infer<typeof sellingUnitSchema>;
 export type Product = z.infer<typeof productSchema>;
 export type ProductVariant = z.infer<typeof productVariantSchema>;
 export type Store = z.infer<typeof storeSchema>;

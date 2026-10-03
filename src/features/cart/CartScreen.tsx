@@ -31,6 +31,11 @@ export function CartScreen() {
   const items = useCartStore((s) => s.items);
   const hydrated = useSessionStore((s) => s.hydrated);
   const quote = useCartQuote();
+  const store = quote.data?.store;
+  const canOrder =
+    !!store &&
+    !store.temporarilyClosed &&
+    (store.pickupAvailable || store.deliveryAvailable);
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState('');
   async function checkout() {
@@ -97,7 +102,11 @@ export function CartScreen() {
             ) : (
               <>
                 {quote.data.lines.map((line) => (
-                  <CartItemCard key={cartKey(line.item)} line={line} />
+                  <CartItemCard
+                    key={cartKey(line.item)}
+                    line={line}
+                    canOrder={canOrder}
+                  />
                 ))}
                 {!quote.data.fulfillmentAvailable && (
                   <AppText color="error">

@@ -25,6 +25,7 @@ import { StorePicker, StoreSelectorCard } from './components/StoreSelectorCard';
 import { FulfillmentSelector } from './components/FulfillmentSelector';
 import { PromoHero } from './components/PromoHero';
 import { CategoryRow } from './components/CategoryRow';
+import { CommerceGroupEntries } from './components/CommerceGroupEntries';
 import { ProductSection } from './components/ProductSection';
 import { BreweryFeature } from './components/BreweryFeature';
 import { PromotionCard } from './components/PromotionCard';
@@ -38,10 +39,10 @@ export function HomeScreen() {
   const [search, setSearch] = useState('');
   const selectStore = useSelectedStore((state) => state.select);
   const selectMethod = useFulfillmentStore((state) => state.select);
-  const actions = useHomeActions(
-    home.selectedStore?.id,
-    !!home.effectiveMethod,
-    () => setPicker(true),
+  const canOrder =
+    !!home.effectiveMethod && !home.selectedStore?.temporarilyClosed;
+  const actions = useHomeActions(home.selectedStore?.id, canOrder, () =>
+    setPicker(true),
   );
   const catalog = (params: Record<string, string> = {}) =>
     router.push({ pathname: '/catalog', params });
@@ -50,7 +51,7 @@ export function HomeScreen() {
     onFavorite: actions.favorite,
     onAdd: actions.add,
     onOpen: actions.openProduct,
-    disabled: !!home.selectedStore && !home.effectiveMethod,
+    disabled: !!home.selectedStore && !canOrder,
   };
   const promotions = home.promotions.data ?? [];
   const hero = promotions[0];
@@ -97,6 +98,7 @@ export function HomeScreen() {
                   />
                 </View>
               </View>
+              <CommerceGroupEntries onSelect={(group) => catalog({ group })} />
               <CategoryRow onSelect={(category) => catalog({ category })} />
               {home.selectedStore && (
                 <View testID="home-on-tap-state" style={styles.onTap}>
@@ -129,7 +131,7 @@ export function HomeScreen() {
                       subtitle={home.selectedStore.name}
                       products={home.onTap.data.slice(0, 5)}
                       {...productActions}
-                      onViewAll={() => catalog({ category: 'draft' })}
+                      onViewAll={() => catalog({ group: 'onTap' })}
                     />
                   ) : (
                     <View style={styles.section}>
@@ -177,7 +179,7 @@ export function HomeScreen() {
                 products={home.snackProducts}
                 compact
                 {...productActions}
-                onViewAll={() => catalog({ category: 'snacks' })}
+                onViewAll={() => catalog({ group: 'snacks' })}
               />
               {home.reorder && (
                 <Card testID="home-reorder">
@@ -188,7 +190,7 @@ export function HomeScreen() {
                   </AppText>
                   <Button
                     label="Додати товари знову"
-                    disabled={!home.effectiveMethod || actions.reordering}
+                    disabled={!canOrder || actions.reordering}
                     onPress={() => actions.reorder(home.reorder!)}
                   />
                 </Card>

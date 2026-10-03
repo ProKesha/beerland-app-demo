@@ -48,7 +48,7 @@ test('repeated pushes of one product keep a single back step to Catalog', async 
   fireEvent.press(screen.getByRole('button', { name: 'Назад' }));
   await waitFor(() => expect(app.getPathname()).toBe('/catalog'));
 });
-test('detail quantities update tab badge and back restores catalog route', async () => {
+test('detail quantities remain one tab badge position and back restores catalog route', async () => {
   const rendered = renderRouter(routes, { initialUrl: '/catalog' });
   fireEvent.press(
     await screen.findByRole('button', { name: 'Оберіть магазин' }),
@@ -67,7 +67,7 @@ test('detail quantities update tab badge and back restores catalog route', async
   fireEvent.press(screen.getByRole('button', { name: 'Назад' }));
   await waitFor(() => expect(rendered.getPathname()).toBe('/catalog'));
   expect(
-    within(screen.getByLabelText('Кошик')).getByText('2'),
+    within(screen.getByTestId('cart-tab')).getByText('1'),
   ).toBeOnTheScreen();
 });
 beforeEach(async () => {
@@ -102,7 +102,11 @@ test('all five real tabs navigate and repository data reaches the screens', asyn
     ['Профіль', '/profile'],
     ['Головна', '/'],
   ]) {
-    fireEvent.press(screen.getByLabelText(label));
+    fireEvent.press(
+      label === 'Кошик'
+        ? screen.getByTestId('cart-tab')
+        : screen.getByLabelText(label),
+    );
     await waitFor(() => expect(rendered.getPathname()).toBe(path));
     expect(
       screen.getByRole('header', {
@@ -132,7 +136,7 @@ test('catalog supports direct navigation', async () => {
   expect(rendered.getPathname()).toBe('/catalog');
 });
 
-test('cart tab badge responds to cart quantity and clears when empty', async () => {
+test('cart tab badge counts one position regardless of quantity and clears when empty', async () => {
   useCartStore.getState().clear();
   renderRouter(routes, { initialUrl: '/' });
   act(() => {
@@ -140,11 +144,17 @@ test('cart tab badge responds to cart quantity and clears when empty', async () 
       .getState()
       .addItem({ productId: 'product-1', storeId: 'store-1', quantity: 3 });
   });
-  await waitFor(() => expect(screen.getByText('3')).toBeOnTheScreen());
+  await waitFor(() =>
+    expect(
+      within(screen.getByTestId('cart-tab')).getByText('1'),
+    ).toBeOnTheScreen(),
+  );
   act(() => {
     useCartStore.getState().clear();
   });
-  await waitFor(() => expect(screen.queryByText('3')).toBeNull());
+  await waitFor(() =>
+    expect(within(screen.getByTestId('cart-tab')).queryByText('1')).toBeNull(),
+  );
 });
 test('Home cart action updates the real tab badge and product navigation resolves its id', async () => {
   const rendered = renderRouter(routes, { initialUrl: '/' });
@@ -160,7 +170,7 @@ test('Home cart action updates the real tab badge and product navigation resolve
   );
   await waitFor(() =>
     expect(
-      within(screen.getByLabelText('Кошик')).getByText('1'),
+      within(screen.getByTestId('cart-tab')).getByText('1'),
     ).toBeOnTheScreen(),
   );
   fireEvent.press(
@@ -200,7 +210,7 @@ test('Home IPA category reaches real Catalog, cart badge updates and back restor
   );
   await waitFor(() =>
     expect(
-      within(screen.getByLabelText('Кошик')).getByText('1'),
+      within(screen.getByTestId('cart-tab')).getByText('1'),
     ).toBeOnTheScreen(),
   );
   fireEvent.press(
@@ -215,8 +225,8 @@ test('Home IPA category reaches real Catalog, cart badge updates and back restor
     screen.getByRole('button', { name: 'Категорія: IPA', selected: true }),
   ).toBeOnTheScreen();
 });
-test('Home on-tap action opens draft Catalog with current store offers', async () => {
-  renderRouter(routes, { initialUrl: '/' });
+test('Home on-tap action opens its commerce group with current store offers and preserves return navigation', async () => {
+  const rendered = renderRouter(routes, { initialUrl: '/' });
   fireEvent.press(
     await screen.findByRole('button', { name: 'Оберіть магазин' }),
   );
@@ -230,8 +240,28 @@ test('Home on-tap action opens draft Catalog with current store offers', async (
   );
   expect(await screen.findByTestId('catalog-product-1')).toBeOnTheScreen();
   expect(
-    screen.getByRole('button', { name: 'Категорія: Розливне', selected: true }),
+    screen.getByRole('button', {
+      name: 'Колекція: Сьогодні на кранах',
+      selected: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole('button', { name: 'Підкатегорія: Пиво' }),
   ).toBeOnTheScreen();
   expect(screen.getByText('Beerland Демо 1')).toBeOnTheScreen();
   expect(screen.queryByTestId('catalog-product-8')).toBeNull();
+  fireEvent.press(
+    screen.getByRole('button', { name: 'Відкрити товар: Світлий берег' }),
+  );
+  await screen.findByRole('header', { name: 'Світлий берег' });
+  fireEvent.press(screen.getByRole('button', { name: 'Назад' }));
+  await waitFor(() => expect(rendered.getPathname()).toBe('/catalog'));
+  expect(
+    screen.getByRole('button', {
+      name: 'Колекція: Сьогодні на кранах',
+      selected: true,
+    }),
+  ).toBeOnTheScreen();
+  act(() => router.back());
+  await waitFor(() => expect(rendered.getPathname()).toBe('/'));
 });

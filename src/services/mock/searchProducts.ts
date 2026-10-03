@@ -8,6 +8,7 @@ import {
 } from '@/features/catalog/model';
 import { productAtStore } from '@/utils/productOffer';
 import { getBeerStyleTheme } from '@/theme/beerStyles';
+import { isAvailableOnTapAtStore } from './commerceGroups';
 
 const normalize = (text: string) =>
   text.normalize('NFKC').toLocaleLowerCase('uk-UA').trim();
@@ -53,6 +54,10 @@ export function searchProducts(
         ].join(' '),
       );
       return (
+        (!request.group || p.commerceGroup === request.group) &&
+        (!request.subcategory ||
+          p.commerceSubcategory === request.subcategory) &&
+        (request.group !== 'onTap' || isAvailableOnTapAtStore(p, storeId)) &&
         categoryMatches &&
         words.every((word) => haystack.includes(word)) &&
         (!request.promotionId || !!promotion?.productIds.includes(p.id)) &&

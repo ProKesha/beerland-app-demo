@@ -15,19 +15,7 @@ import { useRepositories } from '@/repositories/RepositoryProvider';
 import { useStores } from '@/features/stores/useStores';
 import { ProductCard } from '@/features/product/components/ProductCard';
 import { useHomeActions } from '@/features/home/hooks/useHomeActions';
-import { productVariants, variantOffer } from '@/features/product/variants';
-import type { Product } from '@/types/domain';
 import { useSessionStore } from '@/stores/session';
-function favoriteOffer(product: Product, storeId?: string) {
-  const variant = productVariants(product)[0];
-  const offer = variantOffer(product, variant, storeId);
-  return {
-    ...product,
-    price: offer.price,
-    availability: offer.availability,
-    volume: variant.volume,
-  };
-}
 export function FavoritesScreen() {
   const ids = useFavoritesStore((s) => s.productIds);
   const storeId = useSelectedStore((s) => s.storeId);
@@ -92,7 +80,7 @@ export function FavoritesScreen() {
         product ? (
           <ProductCard
             key={product.id}
-            product={favoriteOffer(product, storeId ?? undefined)}
+            product={product}
             shop
             isFavorited
             onFavorite={actions.favorite}

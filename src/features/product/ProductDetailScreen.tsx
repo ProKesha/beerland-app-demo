@@ -30,6 +30,7 @@ import { ProductRecommendations } from './components/ProductRecommendations';
 import { useProduct } from './useProduct';
 import { useProductPurchase } from './useProductPurchase';
 import { variantLabel, variantOffer } from './variants';
+import { priceUnit } from './quantityFormat';
 
 const goBack = () =>
   router.canGoBack() ? router.back() : router.replace('/catalog');
@@ -284,7 +285,7 @@ function ProductDetail({ product }: { product: Product }) {
             <Price
               currentPrice={offer.price}
               oldPrice={offer.oldPrice}
-              volume={variant.volume}
+              unit={priceUnit(product, variant)}
             />
           </View>
           <QuantityControl

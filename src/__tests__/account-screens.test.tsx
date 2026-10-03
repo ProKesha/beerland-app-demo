@@ -164,6 +164,41 @@ test('unavailable favorite is visible but cannot be added', async () => {
   ).toBeDisabled();
   expect(useCartStore.getState().items).toHaveLength(0);
 });
+test('favorites keep legacy parent stock available when only a later serving is orderable', async () => {
+  const r = createMockRepositories();
+  const product = (await r.products.getById('product-1'))!;
+  jest.spyOn(r.products, 'getById').mockResolvedValue({
+    ...product,
+    storeOffers: undefined,
+    variants: product.variants!.map((variant) =>
+      variant.id === 'default' ? { ...variant, storeOffers: [] } : variant,
+    ),
+  });
+  useFavoritesStore.setState({ productIds: [product.id] });
+  setup(<FavoritesScreen />, r);
+  const add = await screen.findByLabelText(`Додати в кошик: ${product.name}`);
+  expect(add).toBeEnabled();
+  expect(
+    screen.getByText(formatMoney({ amount: 10000, currency: 'UAH' })),
+  ).toBeOnTheScreen();
+  fireEvent.press(add);
+  expect(useCartStore.getState().items).toEqual([
+    {
+      productId: product.id,
+      storeId: 'store-1',
+      variantId: '1000-ml',
+      quantity: 1,
+    },
+  ]);
+  expect(
+    screen.getByLabelText(`${product.name}, у кошику: 1 л`),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText(`Збільшити об’єм: ${product.name}`),
+  ).toBeDisabled();
+  fireEvent.press(screen.getByLabelText(`Видалити з кошика: ${product.name}`));
+  expect(useCartStore.getState().items).toEqual([]);
+});
 test('removed product has recoverable favorite state', async () => {
   useFavoritesStore.setState({ productIds: ['gone'] });
   setup(<FavoritesScreen />);

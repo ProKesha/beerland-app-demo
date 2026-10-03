@@ -67,7 +67,7 @@ test('real router cart → checkout → success → home resets the tab badge an
       .addItem({ productId: 'product-1', storeId: 'store-1', quantity: 2 });
   });
   expect(
-    within(screen.getByLabelText('Кошик')).getByText('2'),
+    within(screen.getByTestId('cart-tab')).getByText('1'),
   ).toBeOnTheScreen();
   fireEvent.press(await screen.findByTestId('cart-checkout'));
   await waitFor(() => expect(rendered.getPathname()).toBe('/checkout'));
@@ -93,7 +93,7 @@ test('real router cart → checkout → success → home resets the tab badge an
   expect(useCartStore.getState().items).toHaveLength(0);
   fireEvent.press(screen.getByText('На головну'));
   await waitFor(() => expect(rendered.getPathname()).toBe('/'));
-  expect(within(screen.getByLabelText('Кошик')).queryByText('2')).toBeNull();
+  expect(within(screen.getByTestId('cart-tab')).queryByText('1')).toBeNull();
 });
 
 afterEach(() => {

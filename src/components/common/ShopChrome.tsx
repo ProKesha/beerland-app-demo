@@ -5,6 +5,12 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { ToastRegion } from '@/components/ui/Toast';
+import { CartIcon } from '@/components/common/CartIcon';
+import { useCartStore } from '@/stores/cart';
+import {
+  formatCartAccessibilityLabel,
+  selectCartLineCount,
+} from '@/stores/cartSelectors';
 import { layout, shopPalette, spacing } from '@/theme/tokens';
 
 export function ShopChrome({
@@ -15,6 +21,7 @@ export function ShopChrome({
   minimal?: boolean;
 }) {
   const { width } = useWindowDimensions();
+  const cartCount = useCartStore(selectCartLineCount);
   return (
     <View testID="shop-chrome">
       {!minimal && (
@@ -85,8 +92,9 @@ export function ShopChrome({
               />
               {width >= 740 && (
                 <IconButton
-                  accessibilityLabel="Відкрити кошик"
-                  icon={<Icon name="shopping-bag" />}
+                  testID="header-cart"
+                  accessibilityLabel={formatCartAccessibilityLabel(cartCount)}
+                  icon={<CartIcon />}
                   onPress={() => router.push('/cart')}
                   style={styles.icon}
                 />
