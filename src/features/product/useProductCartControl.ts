@@ -1,7 +1,7 @@
 import type { Product } from '@/types/domain';
 import { useCartStore } from '@/stores/cart';
 import { useSelectedStore } from '@/stores/selectedStore';
-import { useSessionStore } from '@/stores/session';
+import { sessionOwner, useSessionStore } from '@/stores/session';
 import { productVariants, variantOffer } from './variants';
 import {
   adjacentServing,
@@ -16,6 +16,7 @@ export function useProductCartControl(product: Product, disabled: boolean) {
   const items = useCartStore((s) => s.items);
   const storeId = useSelectedStore((s) => s.storeId) ?? undefined;
   const hydrated = useSessionStore((s) => s.hydrated);
+  const owner = useSessionStore(sessionOwner);
   const item = productCartLine(product, items, storeId);
   const variant = item
     ? productVariants(product).find(
@@ -55,6 +56,9 @@ export function useProductCartControl(product: Product, disabled: boolean) {
           (!canOrder && adjacentServing(product, item, -1)))
       ),
     step: (direction: -1 | 1) => {
+      const session = useSessionStore.getState();
+      if (!hydrated || !session.hydrated || owner !== sessionOwner(session))
+        return;
       if (storeId) stepProductCartLine(product, storeId, direction, canOrder);
     },
   };

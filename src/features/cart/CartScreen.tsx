@@ -11,7 +11,7 @@ import {
 } from '@/components/ui';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useCartStore } from '@/stores/cart';
-import { useSessionStore } from '@/stores/session';
+import { sessionOwner, useSessionStore } from '@/stores/session';
 import { useSelectedStore } from '@/stores/selectedStore';
 import { useFulfillmentStore } from '@/stores/fulfillment';
 import { FulfillmentSection } from '@/features/checkout/components/FulfillmentSection';
@@ -24,12 +24,14 @@ import {
   uah,
 } from './pricing';
 import { CartItemCard } from './components/CartItemCard';
+import { ClearCartAction } from './components/ClearCartAction';
 import { OrderSummary } from './components/OrderSummary';
 import { formatMoney } from '@/utils/format';
 import { ShopPageBanner } from '@/components/common/ShopPageBanner';
 export function CartScreen() {
   const items = useCartStore((s) => s.items);
   const hydrated = useSessionStore((s) => s.hydrated);
+  const owner = useSessionStore(sessionOwner);
   const quote = useCartQuote();
   const store = quote.data?.store;
   const canOrder =
@@ -90,6 +92,11 @@ export function CartScreen() {
           />
         ) : (
           <>
+            <ClearCartAction
+              key={owner}
+              owner={owner}
+              onCleared={() => setMessage('')}
+            />
             <FulfillmentSection disabled={checking} />
             {quote.isError ? (
               <ErrorState

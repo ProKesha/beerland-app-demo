@@ -23,6 +23,7 @@ import Cart from '../../app/(main)/(tabs)/cart';
 import Profile from '../../app/(main)/(tabs)/profile';
 import Search from '../../app/(main)/search';
 import Product from '../../app/(main)/product/[id]';
+import Favorites from '../../app/(main)/favorites';
 import { FIRST_LAUNCH_KEY, useFirstLaunchStore } from '@/stores/firstLaunch';
 const routes = {
   _layout: RootLayout,
@@ -35,6 +36,7 @@ const routes = {
   '(main)/(tabs)/profile': Profile,
   '(main)/search': Search,
   '(main)/product/[id]': Product,
+  '(main)/favorites': Favorites,
 };
 test('repeated pushes of one product keep a single back step to Catalog', async () => {
   const app = renderRouter(routes, { initialUrl: '/catalog' });
@@ -136,6 +138,32 @@ test('catalog supports direct navigation', async () => {
   expect(rendered.getPathname()).toBe('/catalog');
 });
 
+test('catalog header opens saved favorites and back restores the catalog', async () => {
+  const rendered = renderRouter(routes, { initialUrl: '/catalog' });
+  const card = within(await screen.findByTestId('catalog-product-1'));
+  fireEvent.press(
+    card.getByRole('button', { name: 'Додати в обране: Світлий берег' }),
+  );
+  fireEvent.press(screen.getByTestId('header-favorites'));
+  await waitFor(() => expect(rendered.getPathname()).toBe('/favorites'));
+  expect(
+    await screen.findByRole('button', {
+      name: 'Відкрити товар: Світлий берег',
+    }),
+  ).toBeOnTheScreen();
+  fireEvent.press(
+    screen.getByRole('button', { name: 'Видалити з обраного: Світлий берег' }),
+  );
+  expect(useFavoritesStore.getState().productIds).toEqual([]);
+  fireEvent.press(screen.getByRole('button', { name: 'Назад' }));
+  await waitFor(() => expect(rendered.getPathname()).toBe('/catalog'));
+  expect(
+    within(screen.getByTestId('catalog-product-1')).getByRole('button', {
+      name: 'Додати в обране: Світлий берег',
+    }),
+  ).toBeOnTheScreen();
+});
+
 test('cart tab badge counts one position regardless of quantity and clears when empty', async () => {
   useCartStore.getState().clear();
   renderRouter(routes, { initialUrl: '/' });
@@ -155,6 +183,26 @@ test('cart tab badge counts one position regardless of quantity and clears when 
   await waitFor(() =>
     expect(within(screen.getByTestId('cart-tab')).queryByText('1')).toBeNull(),
   );
+});
+
+test('clear-cart confirmation removes the real tab badge and checkout action', async () => {
+  useSelectedStore.setState({ storeId: 'store-1' });
+  useCartStore.setState({
+    items: [{ productId: 'product-1', storeId: 'store-1', quantity: 3 }],
+  });
+  const rendered = renderRouter(routes, { initialUrl: '/cart' });
+  await screen.findByTestId('cart-checkout');
+  expect(
+    within(screen.getByTestId('cart-tab')).getByText('1'),
+  ).toBeOnTheScreen();
+  fireEvent.press(screen.getByTestId('cart-clear'));
+  fireEvent.press(screen.getByTestId('cart-clear-confirm'));
+  await waitFor(() => {
+    expect(useCartStore.getState().items).toEqual([]);
+    expect(within(screen.getByTestId('cart-tab')).queryByText('1')).toBeNull();
+    expect(screen.queryByTestId('cart-checkout')).toBeNull();
+  });
+  expect(rendered.getPathname()).toBe('/cart');
 });
 test('Home cart action updates the real tab badge and product navigation resolves its id', async () => {
   const rendered = renderRouter(routes, { initialUrl: '/' });

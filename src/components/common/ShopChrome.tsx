@@ -70,6 +70,7 @@ export function ShopChrome({
               />
               <Button
                 label="ОБРАНЕ"
+                testID="header-favorites"
                 variant="ghost"
                 size="compact"
                 onPress={() => router.push('/favorites')}
@@ -84,12 +85,22 @@ export function ShopChrome({
                 onPress={() => router.push('/search')}
                 style={styles.icon}
               />
-              <IconButton
-                accessibilityLabel="Відкрити профіль"
-                icon={<Icon name="user" />}
-                onPress={() => router.push('/profile')}
-                style={styles.icon}
-              />
+              {width < 740 ? (
+                <IconButton
+                  testID="header-favorites"
+                  accessibilityLabel="Відкрити обране"
+                  icon={<Icon name="heart" />}
+                  onPress={() => router.push('/favorites')}
+                  style={styles.icon}
+                />
+              ) : (
+                <IconButton
+                  accessibilityLabel="Відкрити профіль"
+                  icon={<Icon name="user" />}
+                  onPress={() => router.push('/profile')}
+                  style={styles.icon}
+                />
+              )}
               {width >= 740 && (
                 <IconButton
                   testID="header-cart"

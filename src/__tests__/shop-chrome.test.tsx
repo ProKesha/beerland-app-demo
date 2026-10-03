@@ -4,10 +4,31 @@ import { ShopPageBanner } from '@/components/common/ShopPageBanner';
 import { Screen } from '@/components/ui/Screen';
 import { AppText } from '@/components/ui/AppText';
 import { router } from 'expo-router';
+import { Dimensions } from 'react-native';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 beforeEach(() => jest.clearAllMocks());
+afterEach(() => jest.restoreAllMocks());
+
+test.each([320, 390, 739])(
+  'mobile header at %s px opens the dedicated favorites section',
+  (width) => {
+    jest.spyOn(Dimensions, 'get').mockReturnValue({
+      width,
+      height: 844,
+      scale: 1,
+      fontScale: 1,
+    });
+    render(<ShopChrome home />);
+    fireEvent.press(screen.getByRole('button', { name: 'Відкрити обране' }));
+    expect(router.push).toHaveBeenCalledWith('/favorites');
+    expect(screen.getByTestId('header-favorites')).toBeOnTheScreen();
+    expect(
+      screen.getByRole('button', { name: 'Відкрити пошук' }),
+    ).toBeOnTheScreen();
+  },
+);
 
 test('shared shop navigation opens key destinations', () => {
   render(<ShopChrome />);
@@ -29,6 +50,7 @@ test('entry chrome keeps the brand while withholding shop navigation', () => {
   render(<ShopChrome minimal />);
   expect(screen.getByRole('header', { name: 'Beerland' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Відкрити пошук' })).toBeNull();
+  expect(screen.queryByTestId('header-favorites')).toBeNull();
   expect(screen.queryByRole('header', { name: 'Головна' })).toBeNull();
   expect(screen.queryByText(/Нові смаки вже/)).toBeNull();
 });
